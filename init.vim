@@ -7,9 +7,12 @@ filetype plugin indent on
 
 colorscheme desert
 
+" highlight cursor position
 set cursorline
 set cursorcolumn
 
+" Fix issue with yanking to clipboard
+" https://stackoverflow.com/questions/3961859/how-to-copy-to-clipboard-in-vim
 set clipboard=unnamed
 
 set nocompatible
@@ -42,6 +45,9 @@ set t_Co=256
 
 set cmdheight=1
 
+" Display extra whitespace
+set list listchars=tab:».,trail:.,nbsp:.
+
 " Open new split panes to right and bottom, which feels more natural
 set splitbelow
 set splitright
@@ -52,18 +58,35 @@ nnoremap <C-k> <C-w>k
 nnoremap <C-h> <C-w>h
 nnoremap <C-l> <C-w>l
 
+" Saving
+nnoremap <Leader>w :w<CR>
+nnoremap <Leader>q :q<CR>
+nnoremap <Leader>wq :wq<CR>
+
 " Run simformat
 function! <SID>RunSimformat()
-  let l = line('.')
-  let c = col('.')
-  %!simformat
-  cal cursor(l, c)
-endfun
+  if &filetype == "haskell"
+    let l:pos=getpos(".")
+    exe "%!simformat -e"
+    call setpos(".", l:pos)
+    write
+  else
+    write
+  endif
+endfunc
+
 nnoremap <leader>sf :call <SID>RunSimformat()<cr>
+" Delete whitespace
+
+function! <SID>DeleteWhiteSpace()
+  %s/\s\+$//
+endfun
+nnoremap <leader>wd :call <SID>DeleteWhiteSpace()<cr>
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Plugin Install:
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
 call plug#begin()
 
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
@@ -73,6 +96,7 @@ Plug 'tpope/vim-surround'
 Plug 'sdiehl/vim-ormolu'
 Plug 'morhetz/gruvbox'
 Plug 'itchyny/lightline.vim'
+Plug 'preservim/nerdtree'
 
 call plug#end()
 
@@ -80,7 +104,10 @@ call plug#end()
 " Plugin Configuration:
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+" preservim/nerdtree
 map <Leader>n :NERDTreeToggle<CR>
+
+" junegunn/fzf.vim
 map <Leader>f :Files<CR>
 map <Leader>l :Lines<CR>
 map <Leader>b :Buffers<CR>
@@ -91,11 +118,22 @@ map <Leader>/ :Rg<CR>
 let g:haskell_conceal_wide = 1
 let g:haskell_conceal_bad = 1
 
-let g:haskell_indent_if = 3
-let g:haskell_indent_case = 5
+let g:haskell_indent_if = 0
+let g:haskell_indent_case = 2
 let g:haskell_indent_let = 4
 let g:haskell_indent_do = 3
 let g:haskell_indent_in = 1
+let g:haskell_indent_where = 6
+let g:haskell_indent_before_where = 2
+let g:haskell_indent_after_bare_where = 2
+
+let g:haskell_enable_quantification = 1   " to enable highlighting of `forall`
+let g:haskell_enable_recursivedo = 1      " to enable highlighting of `mdo` and `rec`
+let g:haskell_enable_arrowsyntax = 1      " to enable highlighting of `proc`
+let g:haskell_enable_pattern_synonyms = 1 " to enable highlighting of `pattern`
+let g:haskell_enable_typeroles = 1        " to enable highlighting of type roles
+let g:haskell_enable_static_pointers = 1  " to enable highlighting of `static`
+let g:haskell_backpack = 1                " to enable highlighting of backpack keywords
 
 syntax match hsNiceOperator "\<forall\>" display conceal cchar=∀
 syntax match hsNiceOperator "`elem`" conceal cchar=∈
@@ -135,7 +173,17 @@ syntax match hsStructure
 
 syntax match hsNiceOperator "\<not\>" conceal cchar=¬
 
-let g:multi_cursor_select_all_word_key = '<C-a>'
+" Syntastic
+map <Leader>s :SyntasticToggleMode<CR>
+
+set statusline+=%#warningmsg#
+set statusline+=%{SyntasticStatuslineFlag()}
+set statusline+=%*
+
+let g:syntastic_always_populate_loc_list = 1
+let g:syntastic_auto_loc_list = 0
+let g:syntastic_check_on_open = 0
+let g:syntastic_check_on_wq = 0
 
 "/sdiehl/vim-ormolu
 let g:ormolu_disable=1
