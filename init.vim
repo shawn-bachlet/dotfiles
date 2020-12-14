@@ -1,3 +1,4 @@
+echo ">^.^<"
 let mapleader = " "
 
 syntax on
@@ -8,6 +9,8 @@ colorscheme desert
 
 set cursorline
 set cursorcolumn
+
+set clipboard=unnamed
 
 set nocompatible
 set number
@@ -27,7 +30,6 @@ set expandtab
 set incsearch
 set mouse=a
 set history=1000
-set clipboard=unnamedplus,autoselect
 
 set completeopt=menuone,menu,longest
 
@@ -59,7 +61,20 @@ function! <SID>RunSimformat()
 endfun
 nnoremap <leader>sf :call <SID>RunSimformat()<cr>
 
-execute pathogen#infect()
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Plugin Install:
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+call plug#begin()
+
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+Plug 'junegunn/fzf.vim'
+Plug 'terryma/vim-multiple-cursors'
+Plug 'tpope/vim-surround'
+Plug 'sdiehl/vim-ormolu'
+Plug 'morhetz/gruvbox'
+Plug 'itchyny/lightline.vim'
+
+call plug#end()
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Plugin Configuration:
@@ -119,3 +134,12 @@ syntax match hsStructure
   \ display conceal cchar=⇺
 
 syntax match hsNiceOperator "\<not\>" conceal cchar=¬
+
+let g:multi_cursor_select_all_word_key = '<C-a>'
+
+"/sdiehl/vim-ormolu
+let g:ormolu_disable=1
+nnoremap <Leader>of :call RunOrmolu()<CR>
+
+"/morhetz/gruvbox
+autocmd vimenter * ++nested colorscheme gruvbox
