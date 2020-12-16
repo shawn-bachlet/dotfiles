@@ -5,7 +5,8 @@ syntax on
 
 filetype plugin indent on
 
-colorscheme desert
+" hide mode due to lightline
+"set noshowmode
 
 " highlight cursor position
 set cursorline
@@ -15,10 +16,14 @@ set cursorcolumn
 " https://stackoverflow.com/questions/3961859/how-to-copy-to-clipboard-in-vim
 set clipboard=unnamed
 
+set showmatch
+set matchtime=3
+
 set nocompatible
+
+set relativenumber
 set number
-set nowrap
-set showmode
+
 set tw=80
 
 set smartcase
@@ -93,10 +98,16 @@ Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
 Plug 'terryma/vim-multiple-cursors'
 Plug 'tpope/vim-surround'
+Plug 'tpope/vim-fugitive'
 Plug 'sdiehl/vim-ormolu'
 Plug 'morhetz/gruvbox'
 Plug 'itchyny/lightline.vim'
 Plug 'preservim/nerdtree'
+Plug 'knsh14/vim-github-link'
+Plug 'neovimhaskell/haskell-vim'
+Plug 'neovim/nvim-lspconfig'
+Plug 'nvim-lua/completion-nvim'
+Plug 'nvim-lua/lsp-status.nvim'
 
 call plug#end()
 
@@ -176,10 +187,6 @@ syntax match hsNiceOperator "\<not\>" conceal cchar=¬
 " Syntastic
 map <Leader>s :SyntasticToggleMode<CR>
 
-set statusline+=%#warningmsg#
-set statusline+=%{SyntasticStatuslineFlag()}
-set statusline+=%*
-
 let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 0
 let g:syntastic_check_on_open = 0
@@ -191,3 +198,57 @@ nnoremap <Leader>of :call RunOrmolu()<CR>
 
 "/morhetz/gruvbox
 autocmd vimenter * ++nested colorscheme gruvbox
+
+"knsh14/vim-github-link
+noremap <Leader>gl :GetCommitLink<CR>
+
+"/itchyny/lightline
+let g:lightline = {
+      \ 'active': {
+      \   'left': [ [ 'mode', 'paste' ],
+      \             [ 'gitbranch', 'readonly', 'filename', 'modified' ] ]
+      \ },
+      \ 'component_function': {
+      \   'gitbranch': 'FugitiveHead',
+      \ },
+      \ }
+
+lua <<EOF
+
+local lsp_status = require('lsp-status')
+lsp_status.register_progress()
+
+local nvim_lsp = require('lspconfig')
+
+require'lspconfig'.hls.setup({
+  on_attach=require'completion'.on_attach,
+  completionSnippetsOn = true,
+  diagnosticsOnChange = true,
+  formatOnImportOn = true,
+  formattingProvider = "ormolu", 
+  hlintOn = false, 
+  liquidOn = false,
+  capabilities = lsp_status.capabilities
+  })
+EOF
+
+" Statusline
+function! LspStatus() abort
+  if luaeval('#vim.lsp.buf_get_clients() > 0')
+    return luaeval("require('lsp-status').status()")
+  endif
+
+  return ''
+endfunction
+
+"nvim-lua/completion-nvim
+autocmd BufEnter * lua require'completion'.on_attach()
+" Use <Tab> and <S-Tab> to navigate through popup menu
+inoremap <expr> <Tab>   pumvisible() ? "\<C-n>" : "\<Tab>"
+inoremap <expr> <S-Tab> pumvisible() ? "\<C-p>" : "\<S-Tab>"
+
+" Set completeopt to have a better completion experience
+set completeopt=menuone,noinsert,noselect
+
+" Avoid showing message extra message when using completion
+set shortmess+=c
