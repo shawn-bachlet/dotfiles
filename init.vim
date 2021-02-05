@@ -5,6 +5,13 @@ syntax on
 
 filetype plugin indent on
 
+" Having longer updatetime (default is 4000 ms = 4 s) leads to noticeable
+" delays and poor user experience.
+set updatetime=300
+
+" Give more space for displaying messages.
+set cmdheight=2
+
 " hide mode due to lightline
 "set noshowmode
 
@@ -88,6 +95,17 @@ function! <SID>DeleteWhiteSpace()
 endfun
 nnoremap <leader>wd :call <SID>DeleteWhiteSpace()<cr>
 
+function! Write()
+  if &filetype == "haskell"
+    let l:pos=getpos(".")
+    exe "%!simformat -e"
+    call setpos(".", l:pos)
+  endif
+  call <SID>DeleteWhiteSpace()
+  write
+endfunc
+map :w<cr> :call Write()<cr>
+
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Plugin Install:
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -108,6 +126,7 @@ Plug 'neovimhaskell/haskell-vim'
 Plug 'neovim/nvim-lspconfig'
 Plug 'nvim-lua/completion-nvim'
 Plug 'nvim-lua/lsp-status.nvim'
+Plug 'neoclide/coc.nvim', {'branch': 'release'}
 
 call plug#end()
 
@@ -120,10 +139,30 @@ map <Leader>n :NERDTreeToggle<CR>
 
 " junegunn/fzf.vim
 map <Leader>f :Files<CR>
-map <Leader>l :Lines<CR>
 map <Leader>b :Buffers<CR>
 map <Leader>h :History<CR>
 map <Leader>/ :Rg<CR>
+" map <Leader>sf :Ag (<Bslash>b)<C-r><C-w><Bslash>b[ <Bslash>t<Bslash>n]+::<CR>
+" map <Leader>st :Rg (((data<Bar>newtype<Bar>type)\s+)<Bar>class .*)\b<C-r><C-w>\b<CR>
+
+command! -bar -nargs=? -complete=buffer Buffers
+  \ call fzf#vim#buffers(
+  \   <q-args>,
+  \   fzf#vim#with_preview({'options': ['--info=inline', '--layout=reverse']}, 'down:60%'),
+  \   0)
+
+command! -nargs=? -complete=dir Files
+  \ call fzf#vim#files(
+  \   <q-args>,
+  \   fzf#vim#with_preview({'options': ['--info=inline', '--layout=reverse']}, 'down:60%'),
+  \   0)
+
+command! -nargs=* Rg
+  \ call fzf#vim#grep(
+  \   'rg --column --line-number --no-heading --color=always -- '.shellescape(<q-args>),
+  \   1,
+  \   fzf#vim#with_preview({'options': ['--border', '--info=inline', '--layout=reverse']}, 'down:60%'),
+  \   0)
 
 " Do conceals of wide stuff, like ::, forall, =>, etc.
 let g:haskell_conceal_wide = 1
@@ -185,7 +224,7 @@ syntax match hsStructure
 syntax match hsNiceOperator "\<not\>" conceal cchar=¬
 
 " Syntastic
-map <Leader>s :SyntasticToggleMode<CR>
+"map <Leader>s :SyntasticToggleMode<CR>
 
 let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 0
@@ -198,6 +237,8 @@ nnoremap <Leader>of :call RunOrmolu()<CR>
 
 "/morhetz/gruvbox
 autocmd vimenter * ++nested colorscheme gruvbox
+let g:gruvbox_contrast='dark'
+let g:gruvbox_contrast_dark='hard'
 
 "knsh14/vim-github-link
 noremap <Leader>gl :GetCommitLink<CR>
@@ -212,25 +253,6 @@ let g:lightline = {
       \   'gitbranch': 'FugitiveHead',
       \ },
       \ }
-
-lua <<EOF
-
-local lsp_status = require('lsp-status')
-lsp_status.register_progress()
-
-local nvim_lsp = require('lspconfig')
-
-require'lspconfig'.hls.setup({
-  on_attach=require'completion'.on_attach,
-  completionSnippetsOn = true,
-  diagnosticsOnChange = true,
-  formatOnImportOn = true,
-  formattingProvider = "ormolu", 
-  hlintOn = false, 
-  liquidOn = false,
-  capabilities = lsp_status.capabilities
-  })
-EOF
 
 " Statusline
 function! LspStatus() abort
@@ -252,3 +274,27 @@ set completeopt=menuone,noinsert,noselect
 
 " Avoid showing message extra message when using completion
 set shortmess+=c
+
+" Coc config
+" GoTo code navigation.
+nmap <silent> gd <Plug>(coc-definition)
+nmap <silent> gy <Plug>(coc-type-definition)
+nmap <silent> gr <Plug>(coc-references)
+
+" Use K to show documentation in preview window.
+nnoremap <silent> K :call <SID>show_documentation()<CR>
+
+function! s:show_documentation()
+  if (index(['vim','help'], &filetype) >= 0)
+    execute 'h '.expand('<cword>')
+  elseif (coc#rpc#ready())
+    call CocActionAsync('doHover')
+  else
+    execute '!' . &keywordprg . " " . expand('<cword>')
+  endif
+endfunction
+
+" Applying codeAction to the selected region.
+" Example: `<leader>aap` for current paragraph
+xmap <leader>a  <Plug>(coc-codeaction-selected)
+nmap <leader>a  <Plug>(coc-codeaction-selected)
