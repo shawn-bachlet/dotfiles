@@ -1,5 +1,6 @@
-echo ">^.^<"
 let mapleader = " "
+
+let &t_ut=''
 
 syntax on
 
@@ -28,8 +29,9 @@ set matchtime=3
 
 set nocompatible
 
-set relativenumber
 set number
+
+set nowrap
 
 set tw=80
 
@@ -63,6 +65,8 @@ set list listchars=tab:».,trail:.,nbsp:.
 " Open new split panes to right and bottom, which feels more natural
 set splitbelow
 set splitright
+
+" set spell spelllang=en_us
 
 " Quicker window movement
 nnoremap <C-j> <C-w>j
@@ -118,7 +122,12 @@ Plug 'terryma/vim-multiple-cursors'
 Plug 'tpope/vim-surround'
 Plug 'tpope/vim-fugitive'
 Plug 'sdiehl/vim-ormolu'
+
 Plug 'morhetz/gruvbox'
+Plug 'overcache/NeoSolarized'
+Plug 'romgrk/doom-one.vim'
+Plug 'NLKNguyen/papercolor-theme'
+
 Plug 'itchyny/lightline.vim'
 Plug 'preservim/nerdtree'
 Plug 'knsh14/vim-github-link'
@@ -127,6 +136,11 @@ Plug 'neovim/nvim-lspconfig'
 Plug 'nvim-lua/completion-nvim'
 Plug 'nvim-lua/lsp-status.nvim'
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
+Plug 'autozimu/LanguageClient-neovim', {
+    \ 'branch': 'next',
+    \ 'do': 'bash install.sh'
+    \ }
+Plug 'LnL7/vim-nix'
 
 call plug#end()
 
@@ -148,20 +162,20 @@ map <Leader>/ :Rg<CR>
 command! -bar -nargs=? -complete=buffer Buffers
   \ call fzf#vim#buffers(
   \   <q-args>,
-  \   fzf#vim#with_preview({'options': ['--info=inline', '--layout=reverse']}, 'down:60%'),
+  \   fzf#vim#with_preview({'options': ['--info=inline']}, 'down:60%'),
   \   0)
 
 command! -nargs=? -complete=dir Files
   \ call fzf#vim#files(
   \   <q-args>,
-  \   fzf#vim#with_preview({'options': ['--info=inline', '--layout=reverse']}, 'down:60%'),
+  \   fzf#vim#with_preview({'options': ['--info=inline']}, 'down:60%'),
   \   0)
 
 command! -nargs=* Rg
   \ call fzf#vim#grep(
   \   'rg --column --line-number --no-heading --color=always -- '.shellescape(<q-args>),
   \   1,
-  \   fzf#vim#with_preview({'options': ['--border', '--info=inline', '--layout=reverse']}, 'down:60%'),
+  \   fzf#vim#with_preview({'options': ['--border', '--info=inline']}, 'down:60%'),
   \   0)
 
 " Do conceals of wide stuff, like ::, forall, =>, etc.
@@ -185,44 +199,6 @@ let g:haskell_enable_typeroles = 1        " to enable highlighting of type roles
 let g:haskell_enable_static_pointers = 1  " to enable highlighting of `static`
 let g:haskell_backpack = 1                " to enable highlighting of backpack keywords
 
-syntax match hsNiceOperator "\<forall\>" display conceal cchar=∀
-syntax match hsNiceOperator "`elem`" conceal cchar=∈
-syntax match hsNiceOperator "`notElem`" conceal cchar=∉
-
-syntax match hsStructure
-  \ "()"
-  \ display conceal cchar=∅
-
-syntax match hsStructure
-  \ '\s=>\s'ms=s+1,me=e-1
-  \ display conceal cchar=⇒
-
-syntax match hsOperator
-  \ '\s\~>\s'ms=s+1,me=e-1
-  \ display conceal cchar=⇝
-
-syntax match hsOperator
-  \ '\s>>>\s'ms=s+1,me=e-1
-  \ display conceal cchar=↠
-
-syntax match hsOperator
-  \ '\s<<<\s'ms=s+1,me=e-1
-  \ display conceal cchar=↞
-
-syntax match hsStructure
-  \ '\s-<\s'ms=s+1,me=e-1
-  \ display conceal cchar=↢
-
-syntax match hsStructure
-  \ '\s>-\s'ms=s+1,me=e-1
-  \ display conceal cchar=↣
-
-syntax match hsStructure
-  \ '\s-<<\s'ms=s+1,me=e-1
-  \ display conceal cchar=⇺
-
-syntax match hsNiceOperator "\<not\>" conceal cchar=¬
-
 " Syntastic
 "map <Leader>s :SyntasticToggleMode<CR>
 
@@ -236,9 +212,20 @@ let g:ormolu_disable=1
 nnoremap <Leader>of :call RunOrmolu()<CR>
 
 "/morhetz/gruvbox
-autocmd vimenter * ++nested colorscheme gruvbox
-let g:gruvbox_contrast='dark'
-let g:gruvbox_contrast_dark='hard'
+" set background=dark " Setting light mode
+" autocmd vimenter * ++nested colorscheme gruvbox
+" let g:gruvbox_contrast_light='hard'
+
+"neosolarized
+"colorscheme NeoSolarized
+
+"Doom One color theme
+let g:doom_one_terminal_colors = v:true
+
+"PaperColor theme
+"set t_Co=256   " This is may or may not needed.
+"set background=light
+"colorscheme PaperColor
 
 "knsh14/vim-github-link
 noremap <Leader>gl :GetCommitLink<CR>
@@ -296,5 +283,21 @@ endfunction
 
 " Applying codeAction to the selected region.
 " Example: `<leader>aap` for current paragraph
-xmap <leader>a  <Plug>(coc-codeaction-selected)
-nmap <leader>a  <Plug>(coc-codeaction-selected)
+xmap <leader>a  <Plug>(coc-codeaction-cursor)
+nmap <leader>a  <Plug>(coc-codeaction-cursor)
+
+" LanguageClient
+set rtp+=~/.vim/pack/XXX/start/LanguageClient-neovim
+let g:LanguageClient_serverCommands = { 'haskell': ['haskell-language-server-wrapper', '--lsp'] }
+
+nnoremap <F5> :call LanguageClient_contextMenu()<CR>
+map <Leader>lk :call LanguageClient#textDocument_hover()<CR>
+map <Leader>lg :call LanguageClient#textDocument_definition()<CR>
+map <Leader>lr :call LanguageClient#textDocument_rename()<CR>
+map <Leader>lf :call LanguageClient#textDocument_formatting()<CR>
+map <Leader>lb :call LanguageClient#textDocument_references()<CR>
+map <Leader>la :call LanguageClient#textDocument_codeAction()<CR>
+map <Leader>ls :call LanguageClient#textDocument_documentSymbol()<CR>
+
+" Groovy file syntax highlighting for Jenkinsfiles
+au BufNewFile,BufRead *.jenkinsfile setf groovy
